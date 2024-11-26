@@ -53,8 +53,12 @@ def initialize_vector_store() -> FAISS:
         embeddings = initialize_embeddings()
         index_path = Path(__file__).parent / "app" / "faiss_index"
         
+        # Para debug
+        st.write(f"Tentando carregar de: {index_path}")
+        st.write(f"O diretório existe? {index_path.exists()}")
+        
         if not index_path.exists():
-            raise FileNotFoundError("📁 Diretório do índice FAISS não encontrado")
+            raise FileNotFoundError(f"📁 Diretório do índice FAISS não encontrado em {index_path}")
             
         return FAISS.load_local(
             folder_path=str(index_path),
@@ -63,6 +67,7 @@ def initialize_vector_store() -> FAISS:
         )
     except Exception as e:
         st.error("⚠️ Erro ao carregar índice FAISS")
+        st.write(f"Diretório atual: {Path.cwd()}")  # Mostra diretório atual
         raise ValueError(f"Erro no FAISS: {e}")
 
 def get_chat_response(context: List[Document], question: str) -> str:
