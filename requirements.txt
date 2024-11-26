@@ -1,22 +1,10 @@
-streamlit==1.40.1
-langchain>=0.1.0
-langchain-core
-langchain-community
-langchain-groq==0.0.1
-langchain-chroma==0.1.4
-langsmith==0.1.146
-pydantic-core==2.27.1
-requests-toolbelt==1.0.0
-pydantic>=2.5.2
-sentence-transformers==2.5.1
-python-dotenv==1.0.1
-typing-extensions==4.8.0
-snowflake-connector-python
-snowflake-sqlalchemy
-faiss-cpu
-
-
-
+streamlit>=1.40.1
+langchain-community>=0.0.38
+langchain-core>=0.1.52
+langchain-groq>=0.0.1
+faiss-cpu>=1.7.4
+typing-extensions>=4.8.0
+huggingface-hub>=0.19.4
 
 
 
