@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Chatbot do Manual de Cuidados Paliativos - 2ª edição
 
 Um chatbot especializado desenvolvido para facilitar o acesso e consulta ao Manual de Cuidados Paliativos (2ª edição revisada e ampliada). Utilizando tecnologias avançadas como FAISS (Facebook AI Similarity Search) para busca semântica e Groq LLM para processamento de linguagem natural, o sistema permite consultas interativas e respostas contextualizadas sobre o conteúdo do manual.
@@ -137,3 +138,7 @@ Para dúvidas ou sugestões, por favor abra uma issue no repositório.
 
 ---
 Desenvolvido por Fábio Lacerda para auxiliar no acesso à informação sobre Cuidados Paliativos
+=======
+# ChatbotCP
+Um chatbot especializado baseado em documentos utilizando FAISS (Facebook AI Similarity Search) para busca semântica e Groq LLM para processamento de linguagem natural.
+>>>>>>> 0a5d4ced44a848f5c445096c04330dfea172439d
