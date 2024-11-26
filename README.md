@@ -137,8 +137,8 @@ Este projeto está sob a licença Apache LicenseVersion 2.0, January 2004.  Veja
 Para dúvidas ou sugestões, por favor abra uma issue no repositório.
 
 ---
-Desenvolvido por Fábio Lacerda para auxiliar no acesso à informação sobre Cuidados Paliativos
+Desenvolvido por Fábio Lacerda- (aka. lacerdafh @_fabio_lacerda) para auxiliar no acesso à informação sobre Cuidados Paliativos
 =======
 # ChatbotCP
 Um chatbot especializado baseado em documentos utilizando FAISS (Facebook AI Similarity Search) para busca semântica e Groq LLM para processamento de linguagem natural.
->>>>>>> 0a5d4ced44a848f5c445096c04330dfea172439d
+
