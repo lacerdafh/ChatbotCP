@@ -26,7 +26,7 @@ def get_api_keys():
 def get_embeddings():
     """Inicializa e retorna o modelo de embeddings."""
     try:
-        hf_api_key = os.getenv("HF_API_KEY")
+        hf_api_key = os.getenv("hf_key")
         if not hf_api_key:
             raise ValueError("HF_API_KEY não encontrada")
 
