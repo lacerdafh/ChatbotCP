@@ -1,141 +1,164 @@
 import os
+from typing import Tuple, List
 import streamlit as st
-from langchain_community.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
-from dotenv import load_dotenv
 from pathlib import Path
 from langchain_community.vectorstores import FAISS
+from langchain_core.documents import Document
 
-# Suprimir avisos
+# Configurações para suprimir avisos
 import warnings
 warnings.filterwarnings('ignore')
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-os.environ["GROQ_API_KEY"] = st.secrets["api_keys"]["groq_api_key"]
-os.environ["HF_API_KEY"] = st.secrets["api_keys"]["hf_api_key"]
-
-def get_api_keys():
+# Configuração de cache para as chaves API
+@st.cache_data
+def load_api_keys() -> Tuple[str, str]:
+    """Carrega as chaves API do Streamlit Secrets."""
     try:
-        groq_api_key = st.secrets["api_keys"]["groq_api_key"]
-        hf_api_key = st.secrets["api_keys"]["hf_api_key"]
-        return groq_api_key, hf_api_key
-    except Exception as e:
-        st.error("Erro ao carregar chaves de API. Verifique as configurações de secrets.")
-        raise e
-
-@st.cache_resource
-def get_embeddings():
-    """Inicializa e retorna o modelo de embeddings."""
-    try:
-        hf_api_key = os.getenv("HF_API_KEY")
-        if not hf_api_key:
-            raise ValueError("HF_API_KEY não encontrada")
-
-        return HuggingFaceInferenceAPIEmbeddings(
-            api_key=hf_api_key,
-            model_name="sentence-transformers/all-MiniLM-L6-v2",
+        return (
+            st.secrets["api_keys"]["groq_api_key"],
+            st.secrets["api_keys"]["hf_api_key"]
         )
     except Exception as e:
-        st.error(f"Erro ao carregar embeddings: {str(e)}")
-        raise
+        st.error("⚠️ Erro ao carregar chaves API. Verifique as configurações.")
+        raise ValueError(f"Erro nas chaves API: {e}")
+
+# Inicialização do modelo de embeddings
+@st.cache_resource
+def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
+    """Inicializa o modelo de embeddings com cache."""
+    try:
+        groq_key, hf_key = load_api_keys()
+        os.environ["GROQ_API_KEY"] = groq_key
+        os.environ["HF_API_KEY"] = hf_key
+        
+        return HuggingFaceInferenceAPIEmbeddings(
+            api_key=hf_key,
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
+    except Exception as e:
+        st.error("⚠️ Erro na inicialização dos embeddings")
+        raise ValueError(f"Erro nos embeddings: {e}")
 
 @st.cache_resource
-def load_vector_store():
-    """Carrega o índice FAISS existente."""
+def initialize_vector_store() -> FAISS:
+    """Inicializa e carrega o índice FAISS."""
     try:
-        embeddings = get_embeddings()
-        index_path = Path("faiss_index")
+        embeddings = initialize_embeddings()
+        index_path = Path("app\\faiss_index")
         
         if not index_path.exists():
-            raise FileNotFoundError("Diretório do índice FAISS não encontrado")
+            raise FileNotFoundError("📁 Diretório do índice FAISS não encontrado")
             
-        vector_store = FAISS.load_local(
+        return FAISS.load_local(
             folder_path=str(index_path),
             embeddings=embeddings,
             allow_dangerous_deserialization=True
         )
-        return vector_store
     except Exception as e:
-        st.error(f"Erro ao carregar índice FAISS: {str(e)}")
-        raise
+        st.error("⚠️ Erro ao carregar índice FAISS")
+        raise ValueError(f"Erro no FAISS: {e}")
 
-def get_chat_response(context, user_question):
+def get_chat_response(context: List[Document], question: str) -> str:
+    """Processa a pergunta e retorna a resposta do modelo."""
     try:
+        groq_key, _ = load_api_keys()
         chat_model = ChatGroq(
-            api_key=os.getenv("GROQ_API_KEY"),
+            api_key=groq_key,
             model_name="llama-3.2-3b-preview",
             temperature=0.4,
             max_tokens=1028
         )
 
-        system_message = SystemMessage(
-            content='''Você é um Chatbot que auxilia profissionais de saúde em cuidados paliativos com base apenas no Manual de Cuidados Paliativos, 2ª ed., São Paulo: Hospital Sírio-Libanês; Ministério da Saúde, 2023.
-                    Responda apenas com informações documentadas no manual e, deve orientar sobre todo tipo de medicação de forma completa!
-                    Estruture as respostas de forma clara, mencionando capítulos e subtítulos do manual quando relevante.'''
-        )
+        system_prompt = """Você é um Chatbot especializado em cuidados paliativos, baseando-se exclusivamente no Manual de Cuidados Paliativos, 2ª ed., São Paulo: Hospital Sírio-Libanês; Ministério da Saúde, 2023.
+        - Responda apenas com informações documentadas no manual
+        - Forneça orientações detalhadas sobre medicações
+        - Estruture as respostas de forma clara
+        - Mencione capítulos e subtítulos relevantes do manual"""
 
-        user_content = f"""
-        Contexto: {' '.join(doc.page_content for doc in context)}
-        Pergunta: {user_question}
-        """
-        human_message = HumanMessage(content=user_content)
-
-        messages = [system_message, human_message]
-        response = chat_model.invoke(messages)
+        context_text = " ".join(doc.page_content for doc in context)
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=f"Contexto: {context_text}\nPergunta: {question}")
+        ]
         
-        return response.content
+        return chat_model.invoke(messages).content
     except Exception as e:
-        st.error(f"Erro ao processar resposta: {str(e)}")
-        raise
+        st.error("⚠️ Erro ao processar resposta")
+        return f"Desculpe, ocorreu um erro: {str(e)}"
 
-def main():
-    st.title("Chatbot do Manual de Cuidados Paliativos")
-
-    # Sidebar
+def render_sidebar():
+    """Renderiza a sidebar do aplicativo."""
     with st.sidebar:
         image_path = Path("static/images/app_header.png")
         if image_path.exists():
-            st.image(str(image_path), caption="Familia CP-Sirio tentando levar conhecimento a todos", use_container_width=True)
+            st.image(
+                str(image_path),
+                caption="Familia CP-Sirio tentando levar conhecimento a todos",
+                use_container_width=True
+            )
         
-        st.header("Informações")
-        st.write("💬 Assistente baseado no Manual de Cuidados Paliativos 2ª Ed.")
-        st.write("📚 Use perguntas claras e específicas")
+        st.header("ℹ️ Informações")
+        st.markdown("""
+        💬 **Assistente baseado no Manual de Cuidados Paliativos 2ª Ed.**
+        
+        📚 **Dicas de uso:**
+        - Use perguntas claras e específicas
+        - Mencione termos técnicos corretamente
+        - Indique o contexto clínico quando relevante
+        """)
 
-    # Carregar vector store
+def main():
+    st.set_page_config(
+        page_title="Chatbot - Manual de Cuidados Paliativos",
+        page_icon="🏥",
+        layout="wide"
+    )
+    
+    st.title("🤖 Chatbot do Manual de Cuidados Paliativos")
+    render_sidebar()
+
     try:
+        # Inicialização do vector store
         if 'vector_store' not in st.session_state:
-            with st.spinner("Carregando base de conhecimento..."):
-                st.session_state.vector_store = load_vector_store()
-                st.success("Base de conhecimento carregada!")
+            with st.spinner("📚 Carregando base de conhecimento..."):
+                st.session_state.vector_store = initialize_vector_store()
+                st.success("✅ Base de conhecimento carregada!")
 
-        # Configurar retriever
-        retriever = st.session_state.vector_store.as_retriever(search_kwargs={"k": 5})
+        # Configuração do retriever
+        retriever = st.session_state.vector_store.as_retriever(
+            search_kwargs={"k": 5}
+        )
 
-        # Interface de chat
-        user_question = st.text_input("Faça sua pergunta sobre o Manual de Cuidados Paliativos:")
+        # Interface do usuário
+        user_question = st.text_input(
+            "💭 Faça sua pergunta sobre o Manual de Cuidados Paliativos:",
+            key="user_input"
+        )
         
         if user_question:
-            with st.spinner("Processando..."):
-                # Recuperar documentos relevantes
+            with st.spinner("🔄 Processando sua pergunta..."):
                 context = retriever.get_relevant_documents(user_question)
-
-                # Obter resposta
                 response = get_chat_response(context, user_question)
 
-                # Exibir resposta
-                with st.container():
-                    st.markdown("### Resposta:")
-                    st.write(response)
+                # Exibição da resposta
+                st.markdown("### 📝 Resposta:")
+                st.markdown(response)
 
-                    st.markdown("### Fontes consultadas:")
-                    sources = set(doc.metadata.get('source', 'Desconhecido') for doc in context)
+                # Exibição das fontes
+                with st.expander("📚 Fontes consultadas"):
+                    sources = set(doc.metadata.get('source', 'Desconhecido') 
+                                for doc in context)
                     for source in sources:
-                        st.write(f"- {os.path.basename(source)}")
+                        st.markdown(f"- {Path(source).name}")
 
     except Exception as e:
-        st.error(f"Erro no aplicativo: {str(e)}")
+        st.error(f"⚠️ Erro no aplicativo: {str(e)}")
+        st.info("🔄 Tente recarregar a página ou contate o suporte.")
 
 if __name__ == "__main__":
     main()
