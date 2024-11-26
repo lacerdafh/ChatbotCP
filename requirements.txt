@@ -1,7 +1,7 @@
 streamlit==1.40.1
-langchain>=0.1.0
+langchain==0.1.12
 langchain-community
-langchain-groq==0.0.1
+langchain-groq==0.0.6
 langchain-core
 langsmith==0.1.146 
 pydantic==2.10.1 
@@ -14,5 +14,7 @@ typing-extensions>=4.8.0
 snowflake-connector-python
 snowflake-sqlalchemy
 langchain
-faiss-cpu
+faiss-cpu==1.8.0
 requests==2.31.0
+
+
