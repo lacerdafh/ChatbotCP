@@ -87,7 +87,7 @@ def load_vector_store():
         embeddings = get_embeddings()
         
         # URLs do GitHub (use a URL RAW do seu repositório)
-        github_base_url = "https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPO/main/app/faiss_index"
+        github_base_url = "https://raw.githubusercontent.com/lacerdafh/ChatbotCP/main/app/faiss_index"
         faiss_url = f"{github_base_url}/index.faiss"
         pkl_url = f"{github_base_url}/index.pkl"
         
