@@ -13,14 +13,14 @@ warnings.filterwarnings('ignore')
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-# Carregar configurações
-with open(r"D:\6- projetos\ChatbotCP\app\config.toml", "rb") as f:
-    config = tomllib.load(f)
-
-# Configurar variáveis de ambiente
-os.environ["GROQ_API_KEY"] = config["api_keys"]["groq_api_key"]
-os.environ["HF_API_KEY"] = config["api_keys"]["hf_api_key"]
-load_dotenv()
+def get_api_keys():
+    try:
+        groq_key = st.secrets["api_keys"]["groq_api_key"]
+        hf_key = st.secrets["api_keys"]["hf_api_key"]
+        return groq_key, hf_key
+    except Exception as e:
+        st.error("Erro ao carregar chaves de API. Verifique as configurações de secrets.")
+        raise e
 
 # Verificar chaves API
 if not os.getenv("GROQ_API_KEY"):
