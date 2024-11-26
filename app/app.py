@@ -22,10 +22,6 @@ def get_api_keys():
         st.error("Erro ao carregar chaves de API. Verifique as configurações de secrets.")
         raise e
 
-# Verificar chaves API
-if not os.getenv("GROQ_API_KEY"):
-    raise ValueError("GROQ_API_KEY não encontrada")
-
 @st.cache_resource
 def get_embeddings():
     """Inicializa e retorna o modelo de embeddings."""
