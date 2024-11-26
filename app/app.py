@@ -1,12 +1,14 @@
 import os
 from typing import Tuple, List
 import streamlit as st
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 from pathlib import Path
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
+import pickle
+import shutil
 
 # Configurações para suprimir avisos
 import warnings
