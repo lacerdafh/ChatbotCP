@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 import tomllib
 from pathlib import Path
 from langchain_community.vectorstores import FAISS
+import requests
+import tempfile
+
 
 # Suprimir avisos
 import warnings
@@ -49,20 +52,53 @@ def get_embeddings():
         st.error(f"Erro ao carregar embeddings: {str(e)}")
         raise
 
+@st.cache_data
+def download_faiss_index(github_raw_url_faiss, github_raw_url_pkl):
+    """
+    Download FAISS index files from GitHub and save them locally.
+    """
+    # Criar diretório temporário
+    index_dir = Path("faiss_index")
+    index_dir.mkdir(exist_ok=True)
+    
+    # Download dos arquivos
+    try:
+        # Download index.faiss
+        response = requests.get(github_raw_url_faiss)
+        response.raise_for_status()
+        with open(index_dir / "index.faiss", "wb") as f:
+            f.write(response.content)
+            
+        # Download index.pkl
+        response = requests.get(github_raw_url_pkl)
+        response.raise_for_status()
+        with open(index_dir / "index.pkl", "wb") as f:
+            f.write(response.content)
+            
+        return str(index_dir)
+    except Exception as e:
+        st.error(f"Erro ao baixar índice FAISS: {str(e)}")
+        raise
+
 @st.cache_resource
 def load_vector_store():
-    """Carrega o índice FAISS existente."""
+    """Carrega o índice FAISS do GitHub."""
     try:
         embeddings = get_embeddings()
-        index_path = Path("faiss_index")
         
-        if not index_path.exists():
-            raise FileNotFoundError("Diretório do índice FAISS não encontrado")
-            
+        # URLs do GitHub (use a URL RAW do seu repositório)
+        github_base_url = "https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPO/main/app/faiss_index"
+        faiss_url = f"{github_base_url}/index.faiss"
+        pkl_url = f"{github_base_url}/index.pkl"
+        
+        # Download e salva localmente
+        index_path = download_faiss_index(faiss_url, pkl_url)
+        
+        # Carrega o índice
         vector_store = FAISS.load_local(
-            folder_path=str(index_path),
+            folder_path=index_path,
             embeddings=embeddings,
-            allow_dangerous_deserialization=True  # Adicionado este parâmetro
+            allow_dangerous_deserialization=True
         )
         return vector_store
     except Exception as e:
