@@ -37,7 +37,7 @@ if not os.getenv("GROQ_API_KEY"):
 def get_embeddings():
     """Inicializa e retorna o modelo de embeddings."""
     try:
-        hf_api_key = get_api_keys("HF_API_KEY")
+        hf_api_key = os.getenv("HF_API_KEY")
         if not hf_api_key:
             raise ValueError("HF_API_KEY não encontrada")
 
