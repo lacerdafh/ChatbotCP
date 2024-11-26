@@ -13,14 +13,21 @@ warnings.filterwarnings('ignore')
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+
+
+os.environ["GROQ_API_KEY"] = st.secrets["api_keys"]["groq_api_key"]
+os.environ["HF_API_KEY"] = st.secrets["api_keys"]["hf_api_key"]
+
 def get_api_keys():
     try:
-        groq_key = st.secrets["api_keys"]["groq_api_key"]
-        hf_key = st.secrets["api_keys"]["hf_api_key"]
-        return groq_key, hf_key
+        groq_api_key = st.secrets["api_keys"]["groq_api_key"]
+        hf_api_key = st.secrets["api_keys"]["hf_api_key"]
+        return groq_api_key, hf_api_key
     except Exception as e:
         st.error("Erro ao carregar chaves de API. Verifique as configurações de secrets.")
         raise e
+    
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # Verificar chaves API
 if not os.getenv("GROQ_API_KEY"):
@@ -30,7 +37,7 @@ if not os.getenv("GROQ_API_KEY"):
 def get_embeddings():
     """Inicializa e retorna o modelo de embeddings."""
     try:
-        hf_api_key = os.getenv("HF_API_KEY")
+        hf_api_key = get_api_keys("HF_API_KEY")
         if not hf_api_key:
             raise ValueError("HF_API_KEY não encontrada")
 
@@ -97,7 +104,7 @@ def main():
                 chat_model = ChatGroq(
                     api_key=os.getenv("GROQ_API_KEY"),
                     model_name="llama-3.2-3b-preview",
-                    temperature=0.7,
+                    temperature=0.4,
                     max_tokens=1028
                 )
 
