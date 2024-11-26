@@ -1,22 +1,17 @@
 import os
 import streamlit as st
 from langchain_community.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
-import tomllib
 from pathlib import Path
 from langchain_community.vectorstores import FAISS
-import requests
-import tempfile
-
 
 # Suprimir avisos
 import warnings
 warnings.filterwarnings('ignore')
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
-
 
 os.environ["GROQ_API_KEY"] = st.secrets["api_keys"]["groq_api_key"]
 os.environ["HF_API_KEY"] = st.secrets["api_keys"]["hf_api_key"]
@@ -29,12 +24,6 @@ def get_api_keys():
     except Exception as e:
         st.error("Erro ao carregar chaves de API. Verifique as configurações de secrets.")
         raise e
-    
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-# Verificar chaves API
-if not os.getenv("GROQ_API_KEY"):
-    raise ValueError("GROQ_API_KEY não encontrada")
 
 @st.cache_resource
 def get_embeddings():
@@ -52,57 +41,53 @@ def get_embeddings():
         st.error(f"Erro ao carregar embeddings: {str(e)}")
         raise
 
-@st.cache_data
-def download_faiss_index(github_raw_url_faiss, github_raw_url_pkl):
-    """
-    Download FAISS index files from GitHub and save them locally.
-    """
-    # Criar diretório temporário
-    index_dir = Path("faiss_index")
-    index_dir.mkdir(exist_ok=True)
-    
-    # Download dos arquivos
-    try:
-        # Download index.faiss
-        response = requests.get(github_raw_url_faiss)
-        response.raise_for_status()
-        with open(index_dir / "index.faiss", "wb") as f:
-            f.write(response.content)
-            
-        # Download index.pkl
-        response = requests.get(github_raw_url_pkl)
-        response.raise_for_status()
-        with open(index_dir / "index.pkl", "wb") as f:
-            f.write(response.content)
-            
-        return str(index_dir)
-    except Exception as e:
-        st.error(f"Erro ao baixar índice FAISS: {str(e)}")
-        raise
-
 @st.cache_resource
 def load_vector_store():
-    """Carrega o índice FAISS do GitHub."""
+    """Carrega o índice FAISS existente."""
     try:
         embeddings = get_embeddings()
+        index_path = Path("faiss_index")
         
-        # URLs do GitHub (use a URL RAW do seu repositório)
-        github_base_url = "https://raw.githubusercontent.com/lacerdafh/ChatbotCP/main/app/faiss_index"
-        faiss_url = f"{github_base_url}/index.faiss"
-        pkl_url = f"{github_base_url}/index.pkl"
-        
-        # Download e salva localmente
-        index_path = download_faiss_index(faiss_url, pkl_url)
-        
-        # Carrega o índice
+        if not index_path.exists():
+            raise FileNotFoundError("Diretório do índice FAISS não encontrado")
+            
         vector_store = FAISS.load_local(
-            folder_path=index_path,
+            folder_path=str(index_path),
             embeddings=embeddings,
             allow_dangerous_deserialization=True
         )
         return vector_store
     except Exception as e:
         st.error(f"Erro ao carregar índice FAISS: {str(e)}")
+        raise
+
+def get_chat_response(context, user_question):
+    try:
+        chat_model = ChatGroq(
+            api_key=os.getenv("GROQ_API_KEY"),
+            model_name="llama-3.2-3b-preview",
+            temperature=0.4,
+            max_tokens=1028
+        )
+
+        system_message = SystemMessage(
+            content='''Você é um Chatbot que auxilia profissionais de saúde em cuidados paliativos com base apenas no Manual de Cuidados Paliativos, 2ª ed., São Paulo: Hospital Sírio-Libanês; Ministério da Saúde, 2023.
+                    Responda apenas com informações documentadas no manual e, deve orientar sobre todo tipo de medicação de forma completa!
+                    Estruture as respostas de forma clara, mencionando capítulos e subtítulos do manual quando relevante.'''
+        )
+
+        user_content = f"""
+        Contexto: {' '.join(doc.page_content for doc in context)}
+        Pergunta: {user_question}
+        """
+        human_message = HumanMessage(content=user_content)
+
+        messages = [system_message, human_message]
+        response = chat_model.invoke(messages)
+        
+        return response.content
+    except Exception as e:
+        st.error(f"Erro ao processar resposta: {str(e)}")
         raise
 
 def main():
@@ -136,32 +121,13 @@ def main():
                 # Recuperar documentos relevantes
                 context = retriever.get_relevant_documents(user_question)
 
-                # Configurar chat model
-                chat_model = ChatGroq(
-                    api_key=os.getenv("GROQ_API_KEY"),
-                    model_name="llama-3.2-3b-preview",
-                    temperature=0.4,
-                    max_tokens=1028
-                )
-
-                # Preparar mensagens
-                messages = [
-                    ("system",'''Você é um Chatbot que auxilia profissionais de saúde em cuidados paliativos com base apenas no Manual de Cuidados Paliativos, 2ª ed., São Paulo: Hospital Sírio-Libanês; Ministério da Saúde, 2023.
-                        Responda apenas com informações documentadas no manual e, deve orientar sobre todo tipo de medicação de forma completa!
-                                Estruture as respostas de forma clara, mencionando capítulos e subtítulos do manual quando relevante.'''),
-                    ("user", f"""
-                    Contexto: {' '.join(doc.page_content for doc in context)}
-                    Pergunta: {user_question}
-                    """)
-                ]
-
                 # Obter resposta
-                response = chat_model.invoke(messages)
+                response = get_chat_response(context, user_question)
 
                 # Exibir resposta
                 with st.container():
                     st.markdown("### Resposta:")
-                    st.write(response.content)
+                    st.write(response)
 
                     st.markdown("### Fontes consultadas:")
                     sources = set(doc.metadata.get('source', 'Desconhecido') for doc in context)
