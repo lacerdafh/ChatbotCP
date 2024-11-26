@@ -100,7 +100,7 @@ def get_chat_response(context: List[Document], question: str) -> str:
 
 def render_sidebar():
     """Renderiza a sidebar do aplicativo."""
-     with st.sidebar:
+    with st.sidebar:
         image_path = Path(__file__).parent / "static" / "images" / "app_header.png"
         if image_path.exists():
             st.image(
