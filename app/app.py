@@ -10,9 +10,19 @@ from langchain_community.vectorstores import FAISS
 # Suprimir avisos
 import warnings
 warnings.filterwarnings('ignore')
+
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+with open("config.toml", "rb") as f:
+    config = tomllib.load(f)
+
+os.environ["GROQ_API_KEY"] = config["api_keys"]["groq_api_key"]
+os.environ["HF_API_KEY"] = config["api_keys"]["hf_api_key"]
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+# Carregar variáveis de ambiente
+load_dotenv()
 def get_api_keys():
     try:
         groq_key = st.secrets["api_keys"]["groq_api_key"]
@@ -26,7 +36,7 @@ def get_api_keys():
 def get_embeddings():
     """Inicializa e retorna o modelo de embeddings."""
     try:
-        hf_api_key = get_api_keys(hf_key)
+        hf_api_key = os.getenv("HF_API_KEY")
         if not hf_api_key:
             raise ValueError("hf_api_key não encontrada")
 
@@ -91,7 +101,7 @@ def main():
 
                 # Configurar chat model
                 chat_model = ChatGroq(
-                    api_key=get_api_keys(groq_key),
+                    api_key=GROQ_API_KEY,
                     model_name="llama-3.2-3b-preview",
                     temperature=0.4,
                     max_tokens=1028
