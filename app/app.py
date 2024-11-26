@@ -26,9 +26,9 @@ def get_api_keys():
 def get_embeddings():
     """Inicializa e retorna o modelo de embeddings."""
     try:
-        hf_api_key = os.getenv("hf_key")
+        hf_api_key = get_api_keys(hf_key)
         if not hf_api_key:
-            raise ValueError("HF_API_KEY não encontrada")
+            raise ValueError("hf_api_key não encontrada")
 
         return HuggingFaceInferenceAPIEmbeddings(
             api_key=hf_api_key,
@@ -91,7 +91,7 @@ def main():
 
                 # Configurar chat model
                 chat_model = ChatGroq(
-                    api_key=os.getenv("GROQ_API_KEY"),
+                    api_key=get_api_keys(groq_key),
                     model_name="llama-3.2-3b-preview",
                     temperature=0.4,
                     max_tokens=1028
