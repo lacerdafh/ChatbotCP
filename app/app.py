@@ -51,7 +51,7 @@ def initialize_vector_store() -> FAISS:
     """Inicializa e carrega o índice FAISS."""
     try:
         embeddings = initialize_embeddings()
-        index_path = Path(__file__).parent / "app" / "faiss_index"
+        index_path = Path(__file__).parent / "faiss_index"
         
         # Para debug
         st.write(f"Tentando carregar de: {index_path}")
