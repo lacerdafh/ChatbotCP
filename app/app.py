@@ -54,8 +54,8 @@ def initialize_vector_store() -> FAISS:
         index_path = Path(__file__).parent / "faiss_index"
         
         # Para debug
-        st.write(f"Tentando carregar de: {index_path}")
-        st.write(f"O diretório existe? {index_path.exists()}")
+        #st.write(f"Tentando carregar de: {index_path}")
+        #st.write(f"O diretório existe? {index_path.exists()}")
         
         if not index_path.exists():
             raise FileNotFoundError(f"📁 Diretório do índice FAISS não encontrado em {index_path}")
