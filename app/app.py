@@ -19,63 +19,7 @@ warnings.filterwarnings('ignore')
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-# Configuração de cache para as chaves API
-@st.cache_data
-def load_api_keys() -> Tuple[str, str]:
-    """Carrega as chaves API do Streamlit Secrets."""
-    try:
-        return (
-            st.secrets["api_keys"]["groq_api_key"],
-            st.secrets["api_keys"]["hf_api_key"]
-        )
-    except Exception as e:
-        st.error("⚠️ Erro ao carregar chaves API. Verifique as configurações.")
-        raise ValueError(f"Erro nas chaves API: {e}")
-
-# Inicialização do modelo de embeddings
-@st.cache_resource
-def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
-    """Inicializa o modelo de embeddings com cache."""
-    try:
-        groq_key, hf_key = load_api_keys()
-        os.environ["GROQ_API_KEY"] = groq_key
-        os.environ["HF_API_KEY"] = hf_key
-        
-        return HuggingFaceInferenceAPIEmbeddings(
-            api_key=hf_key,
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
-        )
-    except Exception as e:
-        st.error("⚠️ Erro na inicialização dos embeddings")
-        raise ValueError(f"Erro nos embeddings: {e}")
-
-@st.cache_resource
-def initialize_vector_store() -> FAISS:
-    """Inicializa e carrega o índice FAISS."""
-    try:
-        embeddings = initialize_embeddings()
-        index_path = Path(__file__).parent / "faiss_index"
-        
-        # Para debug
-        #st.write(f"Tentando carregar de: {index_path}")
-        #st.write(f"O diretório existe? {index_path.exists()}")
-        
-        if not index_path.exists():
-            raise FileNotFoundError(f"📁 Diretório do índice FAISS não encontrado em {index_path}")
-            
-        return FAISS.load_local(
-            folder_path=str(index_path),
-            embeddings=embeddings,
-            allow_dangerous_deserialization=True
-        )
-    except Exception as e:
-        st.error("⚠️ Erro ao carregar índice FAISS")
-        st.write(f"Diretório atual: {Path.cwd()}")  # Mostra diretório atual
-        raise ValueError(f"Erro no FAISS: {e}")
-
-
-def get_chat_response(context: List[Document], question: str) -> str:
-    examples = [
+examples = [
                 {
                     "pergunta": "Como posso utilizar morfina para dor?",
                     "resposta": """
@@ -180,6 +124,63 @@ def get_chat_response(context: List[Document], question: str) -> str:
             """
                 }
             ]
+# Configuração de cache para as chaves API
+@st.cache_data
+def load_api_keys() -> Tuple[str, str]:
+    """Carrega as chaves API do Streamlit Secrets."""
+    try:
+        return (
+            st.secrets["api_keys"]["groq_api_key"],
+            st.secrets["api_keys"]["hf_api_key"]
+        )
+    except Exception as e:
+        st.error("⚠️ Erro ao carregar chaves API. Verifique as configurações.")
+        raise ValueError(f"Erro nas chaves API: {e}")
+
+# Inicialização do modelo de embeddings
+@st.cache_resource
+def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
+    """Inicializa o modelo de embeddings com cache."""
+    try:
+        groq_key, hf_key = load_api_keys()
+        os.environ["GROQ_API_KEY"] = groq_key
+        os.environ["HF_API_KEY"] = hf_key
+        
+        return HuggingFaceInferenceAPIEmbeddings(
+            api_key=hf_key,
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
+    except Exception as e:
+        st.error("⚠️ Erro na inicialização dos embeddings")
+        raise ValueError(f"Erro nos embeddings: {e}")
+
+@st.cache_resource
+def initialize_vector_store() -> FAISS:
+    """Inicializa e carrega o índice FAISS."""
+    try:
+        embeddings = initialize_embeddings()
+        index_path = Path(__file__).parent / "faiss_index"
+        
+        # Para debug
+        #st.write(f"Tentando carregar de: {index_path}")
+        #st.write(f"O diretório existe? {index_path.exists()}")
+        
+        if not index_path.exists():
+            raise FileNotFoundError(f"📁 Diretório do índice FAISS não encontrado em {index_path}")
+            
+        return FAISS.load_local(
+            folder_path=str(index_path),
+            embeddings=embeddings,
+            allow_dangerous_deserialization=True
+        )
+    except Exception as e:
+        st.error("⚠️ Erro ao carregar índice FAISS")
+        st.write(f"Diretório atual: {Path.cwd()}")  # Mostra diretório atual
+        raise ValueError(f"Erro no FAISS: {e}")
+
+
+def get_chat_response(context: List[Document], question: str) -> str:
+ 
     try:
         groq_key, _ = load_api_keys()
         chat_model = ChatGroq(
