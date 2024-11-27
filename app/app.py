@@ -192,7 +192,8 @@ def get_chat_response(context: List[Document], question: str) -> str:
 
         # Template para os exemplos
         example_prompt = ChatPromptTemplate.from_messages([
-            ("human", "Pergunta: {pergunta}\nContexto: {context}\nResposta:")
+            ("human", "Pergunta: {pergunta}"),
+            ("assistant", "{resposta}")
         ])
 
         # Integração dos exemplos
