@@ -11,7 +11,6 @@ import pickle
 import shutil
 from typing import List
 from langchain.schema import Document
-from langchain.chat_models import ChatGroq
 from langchain.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
 
 # Configurações para suprimir avisos
