@@ -186,7 +186,7 @@ def get_chat_response(context: List[Document], question: str) -> str:
         chat_model = ChatGroq(
             api_key=groq_key,
             model_name="llama-3.2-3b-preview",
-            temperature=0.3,
+            temperature=0.7,
             max_tokens=1028
         )
 
