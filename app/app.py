@@ -45,7 +45,7 @@ def initialize_vector_store() -> FAISS:
     """Inicializa e carrega o índice FAISS."""
     try:
         embeddings = initialize_embeddings()
-        index_path = Path(__file__).parent / "faiss_index"
+        index_path = Path(__file__).parent 
 
         # Verifica se o índice FAISS existe
         if not index_path.exists():
