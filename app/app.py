@@ -52,8 +52,8 @@ def initialize_vector_store() -> VectorStoreFlatMMR:
     """Inicializa e carrega o índice com a classe VectorStoreFlatMMR."""
     try:
         embeddings = initialize_embeddings()
-        index_path = Path("app\\faiss_index")  # Caminho para o novo índice
-
+        
+        index_path = Path(__file__).parent / "app" / "faiss_index" / "index.faiss"
         # Verificar se o arquivo do índice existe
         if not index_path.exists():
             raise FileNotFoundError(f"📁 Arquivo do índice FAISS não encontrado em {index_path}")
