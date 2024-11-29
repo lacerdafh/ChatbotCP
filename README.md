@@ -118,6 +118,12 @@ streamlit run app/app.py
 - Citação de fontes consultadas
 - Sistema de cache para respostas rápidas
 
+## Metadados e Arquivos de Índice
+
+Os arquivos JSON e `.pkl` necessários estão disponíveis no seguinte link:
+[Baixar Metadados e Índices](https://mega.nz/sua-pasta)
+
+Coloque os arquivos baixados na pasta `data` antes de rodar o script.
 ## ⚠️ Notas Importantes
 
 - O índice FAISS é fixo e pré-construído
