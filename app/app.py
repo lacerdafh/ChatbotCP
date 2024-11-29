@@ -50,7 +50,7 @@ def initialize_vector_store() -> FAISS:
     try:
         embeddings = initialize_embeddings()
         
-        index_path = Path(__file__).parent / "app" / "faiss_index" / "index.faiss"
+        index_path = Path(__file__).parent / "faiss_index" / "index.faiss"
         # Verificar se o arquivo do índice existe
         if not index_path.exists():
             raise FileNotFoundError(f"📁 Arquivo do índice FAISS não encontrado em {index_path}")
