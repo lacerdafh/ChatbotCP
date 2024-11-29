@@ -7,12 +7,9 @@ from langchain_groq import ChatGroq
 from pathlib import Path
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
-import pickle
-import shutil
-from nova_vectorestore import VectorStoreFlatMMR
+import warnings
 
 # Configurações para suprimir avisos
-import warnings
 warnings.filterwarnings('ignore')
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -48,8 +45,8 @@ def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
         raise ValueError(f"Erro nos embeddings: {e}")
 
 @st.cache_resource
-def initialize_vector_store() -> VectorStoreFlatMMR:
-    """Inicializa e carrega o índice com a classe VectorStoreFlatMMR."""
+def initialize_vector_store() -> FAISS:
+    """Inicializa e carrega o índice com a classe FAISS."""
     try:
         embeddings = initialize_embeddings()
         
@@ -58,22 +55,12 @@ def initialize_vector_store() -> VectorStoreFlatMMR:
         if not index_path.exists():
             raise FileNotFoundError(f"📁 Arquivo do índice FAISS não encontrado em {index_path}")
 
-        # Instanciar a classe VectorStoreFlatMMR
-        vector_store = VectorStoreFlatMMR(
-            embedding_model="neuralmind/bert-base-portuguese-cased",  # Modelo escolhido
-            lambda_param=0.7,  # Ajustável para balancear relevância e diversidade
-            top_k=10,  # Número de documentos retornados por busca
-            max_vectors_warning=100000,  # Aviso ao ultrapassar limite de vetores
-            chunk_size=1000,  # Tamanho dos chunks de texto
-            chunk_overlap=200  # Sobreposição entre chunks
-        )
-
         # Carregar o índice FAISS
-        vector_store.index = vector_store.load_vector_store(str(index_path))
+        vector_store = FAISS.load_local(str(index_path), embeddings)
 
         return vector_store
     except Exception as e:
-        st.error("⚠️ Erro ao carregar índice FAISS com VectorStoreFlatMMR")
+        st.error("⚠️ Erro ao carregar índice FAISS")
         raise ValueError(f"Erro no FAISS: {e}")
 
 def get_chat_response(context: List[Document], question: str) -> str:
@@ -89,7 +76,7 @@ def get_chat_response(context: List[Document], question: str) -> str:
 
         system_prompt = """Você é um Chatbot especializado em cuidados paliativos, baseando-se exclusivamente no Manual de Cuidados Paliativos, 2ª ed., São Paulo: Hospital Sírio-Libanês; Ministério da Saúde, 2023.
         - Responda apenas com informações documentadas no manual
-        - obrigatorio fornecer orientações detalhadas sobre medicações
+        - obrigatório fornecer orientações detalhadas sobre medicações
         - Estruture as respostas de forma clara
         - Mencione capítulos e subtítulos relevantes do manual"""
 
