@@ -8,16 +8,29 @@ from pathlib import Path
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 import pickle
-import shutil
 import requests
+import warnings
 
 # Configurações para suprimir avisos
-import warnings
 warnings.filterwarnings('ignore')
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-# Função para download dos arquivos JSON e PKL
+# Configuração de cache para as chaves API
+@st.cache_data
+def load_api_keys() -> Tuple[str, str, str, str]:
+    """Carrega as chaves API e as chaves de descriptografia do Mega.nz."""
+    try:
+        return (
+            st.secrets["api_keys"]["groq_api_key"],
+            st.secrets["api_keys"]["hf_api_key"],
+            st.secrets["api_keys"]["store_key_json"],
+            st.secrets["api_keys"]["index_key_pkl"]
+        )
+    except Exception as e:
+        st.error("⚠️ Erro ao carregar chaves API. Verifique as configurações.")
+        raise ValueError(f"Erro nas chaves API: {e}")
+
 def download_file(url: str, decrypt_key: str, output_path: str):
     """
     Faz o download de um arquivo dado um link público e uma chave de descriptografia.
@@ -42,7 +55,7 @@ def download_file(url: str, decrypt_key: str, output_path: str):
         print(f"Arquivo baixado e salvo em: {output_path}")
     except requests.exceptions.RequestException as e:
         print(f"Erro ao baixar o arquivo de {url}: {e}")
-        
+
 # Carrega as chaves
 groq_api_key, hf_api_key, store_key_json, index_key_pkl = load_api_keys()
 
@@ -53,27 +66,12 @@ index_pkl_url = "https://mega.nz/file/SYNmXYjK"
 store_data_path = "data/store_data.json"
 index_pkl_path = "data/index.pkl"
 
-# Faz download dos arquivos, incluindo a chave de descriptografia
+# Faz download dos arquivos, incluindo as chaves de descriptografia
 if not os.path.exists(store_data_path):
     download_file(store_data_url, store_key_json, store_data_path)
 if not os.path.exists(index_pkl_path):
     download_file(index_pkl_url, index_key_pkl, index_pkl_path)
 
-# Configuração de cache para as chaves API
-@st.cache_data
-def load_api_keys() -> Tuple[str, str, str, str]:
-    """Carrega as chaves API e a chave de descriptografia do Mega.nz."""
-    try:
-        return (
-            st.secrets["api_keys"]["groq_api_key"],
-            st.secrets["api_keys"]["hf_api_key"],
-            st.secrets["api_keys"]["store_key_json"],
-            st.secrets["api_keys"]["index_key_pkl"]
-            
-        )
-    except Exception as e:
-        st.error("⚠️ Erro ao carregar chaves API. Verifique as configurações.")
-        raise ValueError(f"Erro nas chaves API: {e}")
 
 
 # Inicialização do modelo de embeddings
@@ -96,6 +94,21 @@ def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
 @st.cache_resource
 def initialize_vector_store() -> FAISS:
     """Inicializa e carrega o índice FAISS."""
+    # Carrega as chaves
+    groq_api_key, hf_api_key, store_key_json, index_key_pkl = load_api_keys()
+    
+    # URLs base dos arquivos no Mega.nz
+    store_data_url = "https://mega.nz/file/3FUhULwC"
+    index_pkl_url = "https://mega.nz/file/SYNmXYjK"
+    
+    store_data_path = "data/store_data.json"
+    index_pkl_path = "data/index.pkl"
+    
+    # Faz download dos arquivos, incluindo as chaves de descriptografia
+    if not os.path.exists(store_data_path):
+        download_file(store_data_url, store_key_json, store_data_path)
+    if not os.path.exists(index_pkl_path):
+        download_file(index_pkl_url, index_key_pkl, index_pkl_path)
     try:
         embeddings = initialize_embeddings()
         index_path = Path(__file__).parent / "faiss_index"
