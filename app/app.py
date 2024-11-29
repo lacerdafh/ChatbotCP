@@ -56,7 +56,11 @@ def initialize_vector_store() -> FAISS:
             raise FileNotFoundError(f"📁 Arquivo do índice FAISS não encontrado em {index_path}")
 
         # Carregar o índice FAISS
-        vector_store = FAISS.load_local(str(index_path), embeddings)
+        vector_store = FAISS.load_local(
+            str(index_path), 
+            embeddings, 
+            allow_dangerous_deserialization=True
+        )
 
         return vector_store
     except Exception as e:
