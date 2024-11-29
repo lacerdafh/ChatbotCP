@@ -412,10 +412,17 @@ class VectorStoreFlatMMR:
     @classmethod
     def load_vector_store(cls, folder_path: str) -> 'VectorStoreFlatMMR':
         """Carrega vector store"""
-        with open(f"{folder_path}/store_data.json", 'r', encoding='utf-8') as f:
+        
+        folder_path = Path(folder_path)  # Garante que o caminho seja um objeto Path
+        
+        # Carrega os dados de configuração e documentos do arquivo JSON
+        with open(folder_path / "store_data.json", 'r', encoding='utf-8') as f:
             store_data = json.load(f)
         
+        # Obtém a configuração armazenada
         config = store_data['config']
+        
+        # Cria a instância da vector store com as configurações carregadas
         store = cls(
             embedding_model=config.get('embedding_model', "neuralmind/bert-base-portuguese-cased"),
             lambda_param=config.get('lambda_param', 0.7),
@@ -425,16 +432,18 @@ class VectorStoreFlatMMR:
             chunk_overlap=config.get('chunk_overlap', 200)
         )
         
+        # Carrega os documentos e seus embeddings
         for doc_data in store_data['documents']:
             embedding = np.array(doc_data['embedding']) if doc_data.get('embedding') is not None else None
             doc = Document(
                 page_content=doc_data['text'],
                 metadata=doc_data['metadata'],
-                embedding=embedding  # Carrega embedding
+                embedding=embedding  # Carrega o embedding, se houver
             )
             store.documents.append(doc)
-        
-        store.index = faiss.read_index(f"{folder_path}/index.faiss")
+
+        # Carrega o índice FAISS
+        store.index = faiss.read_index(str(folder_path / "index.faiss"))
         
         logger.info(
             f"Vector store carregada de: {folder_path}\n"
