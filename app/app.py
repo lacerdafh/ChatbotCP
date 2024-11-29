@@ -44,7 +44,7 @@ def download_file(url: str, decrypt_key: str, output_path: str):
         print(f"Erro ao baixar o arquivo de {url}: {e}")
         
 # Carrega as chaves
-groq_api_key, hf_api_key, mega_decrypt_key = load_api_keys()
+groq_api_key, hf_api_key, store_key_json, index_key_pkl = load_api_keys()
 
 # URLs base dos arquivos no Mega.nz
 store_data_url = "https://mega.nz/file/3FUhULwC"
@@ -55,9 +55,9 @@ index_pkl_path = "data/index.pkl"
 
 # Faz download dos arquivos, incluindo a chave de descriptografia
 if not os.path.exists(store_data_path):
-    download_file(store_data_url, mega_decrypt_key, store_data_path)
+    download_file(store_data_url, store_key_json, store_data_path)
 if not os.path.exists(index_pkl_path):
-    download_file(index_pkl_url, mega_decrypt_key, index_pkl_path)
+    download_file(index_pkl_url, index_key_pkl, index_pkl_path)
 
 # Configuração de cache para as chaves API
 @st.cache_data
