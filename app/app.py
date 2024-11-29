@@ -31,7 +31,7 @@ def load_api_keys() -> Tuple[str, str]:
         
 def ensure_faiss_index():
     """Garante que o arquivo index.faiss esteja disponível localmente."""
-    github_url = "https://github.com/lacerdafh/ChatbotCP/blob/main/app/faiss_index/index.faiss"
+    github_url = "https://github.com/lacerdafh/ChatbotCP/blob/main/app/faiss_index"
     local_dir = Path(__file__).parent / "faiss_index"
     local_dir.mkdir(parents=True, exist_ok=True)
     local_path = local_dir / "index.faiss"
