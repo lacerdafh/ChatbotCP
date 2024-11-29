@@ -40,7 +40,7 @@ def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
         
         return HuggingFaceInferenceAPIEmbeddings(
             api_key=hf_key,
-            model_name="sentence-transformers/all-mpnet-base-v2"
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
     except Exception as e:
         st.error("⚠️ Erro na inicialização dos embeddings")
@@ -77,13 +77,13 @@ def get_chat_response(context: List[Document], question: str) -> str:
         chat_model = ChatGroq(
             api_key=groq_key,
             model_name="llama-3.2-3b-preview",
-            temperature=0.3,
+            temperature=0.5,
             max_tokens=1028
         )
 
         system_prompt = """Você é um Chatbot especializado em cuidados paliativos, baseando-se exclusivamente no Manual de Cuidados Paliativos, 2ª ed., São Paulo: Hospital Sírio-Libanês; Ministério da Saúde, 2023.
         - Responda apenas com informações documentadas no manual
-        - Forneça orientações detalhadas sobre medicações
+        - obrigatorio fornecer orientações detalhadas sobre medicações
         - Estruture as respostas de forma clara
         - Mencione capítulos e subtítulos relevantes do manual"""
 
