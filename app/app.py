@@ -9,6 +9,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 import pickle
 import shutil
+import requests
 
 # Configurações para suprimir avisos
 import warnings
@@ -16,18 +17,64 @@ warnings.filterwarnings('ignore')
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+# Função para download dos arquivos JSON e PKL
+def download_file(url: str, decrypt_key: str, output_path: str):
+    """
+    Faz o download de um arquivo dado um link público e uma chave de descriptografia.
+
+    Args:
+        url (str): URL base do Mega.nz.
+        decrypt_key (str): Chave de descriptografia do arquivo.
+        output_path (str): Caminho onde o arquivo será salvo.
+    """
+    try:
+        # Constrói o link completo
+        full_url = f"{url}#{decrypt_key}"
+        response = requests.get(full_url, stream=True)
+        response.raise_for_status()  # Lança erro para códigos de resposta HTTP >= 400
+        
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        with open(output_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+        print(f"Arquivo baixado e salvo em: {output_path}")
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao baixar o arquivo de {url}: {e}")
+        
+# Carrega as chaves
+groq_api_key, hf_api_key, mega_decrypt_key = load_api_keys()
+
+# URLs base dos arquivos no Mega.nz
+store_data_url = "https://mega.nz/file/3FUhULwC"
+index_pkl_url = "https://mega.nz/file/SYNmXYjK"
+
+store_data_path = "data/store_data.json"
+index_pkl_path = "data/index.pkl"
+
+# Faz download dos arquivos, incluindo a chave de descriptografia
+if not os.path.exists(store_data_path):
+    download_file(store_data_url, mega_decrypt_key, store_data_path)
+if not os.path.exists(index_pkl_path):
+    download_file(index_pkl_url, mega_decrypt_key, index_pkl_path)
+
 # Configuração de cache para as chaves API
 @st.cache_data
-def load_api_keys() -> Tuple[str, str]:
-    """Carrega as chaves API do Streamlit Secrets."""
+def load_api_keys() -> Tuple[str, str, str]:
+    """Carrega as chaves API e a chave de descriptografia do Mega.nz."""
     try:
         return (
             st.secrets["api_keys"]["groq_api_key"],
-            st.secrets["api_keys"]["hf_api_key"]
+            st.secrets["api_keys"]["hf_api_key"],
+            st.secrets["api_keys"]["store_key_json"],
+            st.secrets["api_keys"]["index_key_pkl"]
+            
         )
     except Exception as e:
         st.error("⚠️ Erro ao carregar chaves API. Verifique as configurações.")
         raise ValueError(f"Erro nas chaves API: {e}")
+
 
 # Inicialização do modelo de embeddings
 @st.cache_resource
