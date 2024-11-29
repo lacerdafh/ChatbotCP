@@ -58,8 +58,8 @@ def main():
     st.title("Chatbot com Base de Conhecimento FAISS")
 
     # Configurar caminho do index.faiss
-    index_path = "index.faiss"  # Arquivo no diretório atual
-
+    current_dir = Path(os.path.dirname(__file__))  # Diretório do arquivo atual
+    index_path = current_dir / "index.faiss"
     # Inicializar embeddings e carregar índice FAISS
     try:
         embeddings = get_embeddings()
