@@ -104,32 +104,16 @@ def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
 @st.cache_resource
 def initialize_vector_store() -> FAISS:
     """Inicializa e carrega o índice FAISS."""
-    # Carrega as chaves
-    groq_api_key, hf_api_key, store_key_json, index_key_pkl = load_api_keys()
-    
-    # URLs base dos arquivos no Mega.nz
-    store_data_url = "https://mega.nz/file/3FUhULwC"
-    index_pkl_url = "https://mega.nz/file/SYNmXYjK"
-    
-    store_data_path = "data/store_data.json"
-    index_pkl_path = "data/index.pkl"
-    
-    # Faz download dos arquivos, incluindo as chaves de descriptografia
-    if not os.path.exists(store_data_path):
-        download_file(store_data_url, store_key_json, store_data_path)
-    if not os.path.exists(index_pkl_path):
-        download_file(index_pkl_url, index_key_pkl, index_pkl_path)
     try:
         embeddings = initialize_embeddings()
         index_path = Path(__file__).parent / "faiss_index"
-        
-        # Para debug
-        #st.write(f"Tentando carregar de: {index_path}")
-        #st.write(f"O diretório existe? {index_path.exists()}")
-        
+
+        # Debug: verificar caminho do índice
+        st.write(f"Tentando carregar índice FAISS de: {index_path}")
         if not index_path.exists():
             raise FileNotFoundError(f"📁 Diretório do índice FAISS não encontrado em {index_path}")
-            
+        
+        # Carregar o índice FAISS
         return FAISS.load_local(
             folder_path=str(index_path),
             embeddings=embeddings,
@@ -137,7 +121,6 @@ def initialize_vector_store() -> FAISS:
         )
     except Exception as e:
         st.error("⚠️ Erro ao carregar índice FAISS")
-        st.write(f"Diretório atual: {Path.cwd()}")  # Mostra diretório atual
         raise ValueError(f"Erro no FAISS: {e}")
 
 def get_chat_response(context: List[Document], question: str) -> str:
