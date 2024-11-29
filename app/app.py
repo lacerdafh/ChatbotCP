@@ -8,6 +8,7 @@ from pathlib import Path
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 import warnings
+from sentence_transformers import SentenceTransformer
 
 # Configurações para suprimir avisos
 warnings.filterwarnings('ignore')
@@ -38,7 +39,8 @@ def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
         
         return HuggingFaceInferenceAPIEmbeddings(
             api_key=hf_key,
-            model_name="paraphrase-multilingual-MiniLM-L12-v2"
+            #model_name="paraphrase-multilingual-MiniLM-L12-v2"
+            model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
         )
     except Exception as e:
         st.error("⚠️ Erro na inicialização dos embeddings")
