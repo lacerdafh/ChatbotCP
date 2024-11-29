@@ -465,8 +465,7 @@ def main():
 
         logger.info("Iniciando processamento da vector store...")
         
-        filepath = r"D:\6- projetos\ChatbotCP\data\capitulos_separados\all_chapters.json"
-        base_save_path = r"D:\6- projetos\ChatbotCP\data\capitulos_separados\palliative_care"
+        base_save_path = Path(__file__).parent / "app" / "faiss_index" / "index.faiss"
         
         texts, metadatas = load_texts_from_json(filepath)
         store.add_texts(texts, metadatas)
