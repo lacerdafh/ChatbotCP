@@ -61,7 +61,7 @@ if not os.path.exists(index_pkl_path):
 
 # Configuração de cache para as chaves API
 @st.cache_data
-def load_api_keys() -> Tuple[str, str, str]:
+def load_api_keys() -> Tuple[str, str, str, str]:
     """Carrega as chaves API e a chave de descriptografia do Mega.nz."""
     try:
         return (
