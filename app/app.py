@@ -8,7 +8,8 @@ from pathlib import Path
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 import warnings
-from sentence_transformers import SentenceTransformer
+import requests
+
 
 # Configurações para suprimir avisos
 warnings.filterwarnings('ignore')
@@ -27,7 +28,30 @@ def load_api_keys() -> Tuple[str, str]:
     except Exception as e:
         st.error("⚠️ Erro ao carregar chaves API. Verifique as configurações.")
         raise ValueError(f"Erro nas chaves API: {e}")
+        
+def ensure_faiss_index():
+    """Garante que o arquivo index.faiss esteja disponível localmente."""
+    github_url = "https://github.com/lacerdafh/ChatbotCP/blob/main/app/faiss_index/index.faiss"
+    local_dir = Path(__file__).parent / "faiss_index"
+    local_dir.mkdir(parents=True, exist_ok=True)
+    local_path = local_dir / "index.faiss"
 
+    if not local_path.exists():
+        st.warning("🔄 Baixando arquivo de índice FAISS...")
+        try:
+            response = requests.get(github_url)
+            if response.status_code == 200:
+                with open(local_path, "wb") as f:
+                    f.write(response.content)
+                st.success("✅ Arquivo FAISS baixado com sucesso!")
+            else:
+                st.error(f"⚠️ Erro ao baixar o arquivo FAISS: {response.status_code}")
+                raise ValueError("Erro ao baixar o arquivo FAISS.")
+        except Exception as e:
+            st.error(f"⚠️ Erro durante o download: {str(e)}")
+            raise e
+    return local_path
+    
 # Inicialização do modelo de embeddings
 @st.cache_resource
 def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
@@ -48,7 +72,7 @@ def initialize_vector_store() -> FAISS:
     try:
         embeddings = initialize_embeddings()
         
-        index_path = Path(__file__).parent / "faiss_index" / "index.faiss"
+        index_path = ensure_faiss_index()
         # Verificar se o arquivo do índice existe
         if not index_path.exists():
             raise FileNotFoundError(f"📁 Arquivo do índice FAISS não encontrado em {index_path}")
