@@ -48,7 +48,7 @@ def load_faiss_index(index_path: str, embeddings):
     """Carrega o índice FAISS específico."""
     try:
         if os.path.exists(index_path):
-            return FAISS.load_local(index_path, embeddings)
+            return FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
         else:
             raise FileNotFoundError(f"Arquivo index.faiss não encontrado em: {index_path}")
     except Exception as e:
