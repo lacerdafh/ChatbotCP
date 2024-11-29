@@ -1,6 +1,13 @@
+import streamlit as st 
+# `st.set_page_config` precisa ser chamado logo no início
+st.set_page_config(
+    page_title="Chatbot - Manual de Cuidados Paliativos",
+    page_icon="🏥",
+    layout="wide"
+)
+
 import os
 from typing import Tuple, List
-import streamlit as st
 from langchain.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
@@ -181,17 +188,9 @@ def render_sidebar():
 
 
 def main():
-    # `st.set_page_config` deve ser o primeiro comando Streamlit
-    st.set_page_config(
-        page_title="Chatbot - Manual de Cuidados Paliativos",
-        page_icon="🏥",
-        layout="wide"
-    )
-    
-    # Restante do código da função
     st.title("🤖 Chatbot do Manual de Cuidados Paliativos")
     render_sidebar()
-
+    
     try:
         # Inicialização do vector store
         if 'vector_store' not in st.session_state:
