@@ -179,13 +179,16 @@ def render_sidebar():
         - Indique o contexto clínico quando relevante
         """)
 
+
 def main():
+    # `st.set_page_config` deve ser o primeiro comando Streamlit
     st.set_page_config(
         page_title="Chatbot - Manual de Cuidados Paliativos",
         page_icon="🏥",
         layout="wide"
     )
     
+    # Restante do código da função
     st.title("🤖 Chatbot do Manual de Cuidados Paliativos")
     render_sidebar()
 
