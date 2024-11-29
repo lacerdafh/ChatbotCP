@@ -1,10 +1,15 @@
 import os
+from typing import Tuple, List
 import streamlit as st
-from langchain.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
+from pathlib import Path
+from langchain.schema import SystemMessage, HumanMessage
 from langchain_groq import ChatGroq
-from dotenv import load_dotenv
 import warnings
+import faiss
+import json
 
 # Suprimir avisos
 warnings.filterwarnings('ignore')
@@ -12,19 +17,27 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # Carregar configurações e chaves API
-load_dotenv()
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-HF_API_KEY = os.getenv("HF_API_KEY")
-
-if not GROQ_API_KEY:
-    raise ValueError("GROQ_API_KEY não encontrada")
+def load_api_keys() -> Tuple[str, str]:
+    """Carrega as chaves API necessárias."""
+    try:
+        return (
+            st.secrets["api_keys"]["groq_api_key"],
+            st.secrets["api_keys"]["hf_api_key"]
+        )
+    except Exception as e:
+        st.error("⚠️ Erro ao carregar chaves API. Verifique as configurações.")
+        raise ValueError(f"Erro nas chaves API: {e}")
 
 @st.cache_resource
 def get_embeddings():
     """Inicializa e retorna o modelo de embeddings específico do DPR."""
     try:
+        groq_api_key, hf_api_key = load_api_keys()
+        os.environ["GROQ_API_KEY"] = groq_api_key
+        os.environ["HF_API_KEY"] = hf_api_key
+        
         return HuggingFaceInferenceAPIEmbeddings(
-            api_key=HF_API_KEY,
+            api_key=hf_api_key,
             model_name="facebook/dpr-ctx_encoder-multiset-base"
         )
     except Exception as e:
