@@ -41,7 +41,7 @@ def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
         
         return HuggingFaceInferenceAPIEmbeddings(
             api_key=hf_key,
-            model_name="neuralmind/bert-base-portuguese-cased"
+            model_name="paraphrase-multilingual-MiniLM-L12-v2"
         )
     except Exception as e:
         st.error("⚠️ Erro na inicialização dos embeddings")
