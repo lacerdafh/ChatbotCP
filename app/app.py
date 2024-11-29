@@ -31,16 +31,12 @@ def load_api_keys() -> Tuple[str, str]:
 # Inicialização do modelo de embeddings
 @st.cache_resource
 def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
-    """Inicializa o modelo de embeddings com cache."""
+    """Inicializa o modelo HuggingFaceInferenceAPIEmbeddings."""
     try:
-        groq_key, hf_key = load_api_keys()
-        os.environ["GROQ_API_KEY"] = groq_key
-        os.environ["HF_API_KEY"] = hf_key
-        
+        _, hf_key = load_api_keys()
         return HuggingFaceInferenceAPIEmbeddings(
             api_key=hf_key,
-            #model_name="paraphrase-multilingual-MiniLM-L12-v2"
-            model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+            model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
         )
     except Exception as e:
         st.error("⚠️ Erro na inicialização dos embeddings")
