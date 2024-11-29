@@ -1,124 +1,124 @@
 import os
-from typing import Tuple, List
 import streamlit as st
 from langchain.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
-from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
-from pathlib import Path
+from langchain_groq import ChatGroq
+from dotenv import load_dotenv
 import warnings
 
-# Configurações para suprimir avisos
-warnings.filterwarnings("ignore")
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+# Suprimir avisos
+warnings.filterwarnings('ignore')
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-# Configuração de cache para as chaves API
-@st.cache_data
-def load_api_keys() -> Tuple[str, str]:
-    """Carrega as chaves API necessárias."""
-    try:
-        return (
-            st.secrets["api_keys"]["hf_api_key"],
-            st.secrets["api_keys"]["store_key_json"]
-        )
-    except Exception as e:
-        st.error("⚠️ Erro ao carregar chaves API. Verifique as configurações.")
-        raise ValueError(f"Erro nas chaves API: {e}")
+# Carregar configurações e chaves API
+load_dotenv()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+HF_API_KEY = os.getenv("HF_API_KEY")
+
+if not GROQ_API_KEY:
+    raise ValueError("GROQ_API_KEY não encontrada")
 
 @st.cache_resource
-def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
-    """Inicializa o modelo de embeddings com cache."""
+def get_embeddings():
+    """Inicializa e retorna o modelo de embeddings específico do DPR."""
     try:
-        hf_key, _ = load_api_keys()
-        os.environ["HF_API_KEY"] = hf_key
-        
         return HuggingFaceInferenceAPIEmbeddings(
-            api_key=hf_key,
-            model_name="microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224"
+            api_key=HF_API_KEY,
+            model_name="facebook/dpr-ctx_encoder-multiset-base"
         )
     except Exception as e:
-        st.error("⚠️ Erro na inicialização dos embeddings")
-        raise ValueError(f"Erro nos embeddings: {e}")
+        st.error(f"Erro ao carregar embeddings: {str(e)}")
+        raise
 
-@st.cache_resource
-def initialize_vector_store() -> FAISS:
-    """Inicializa e carrega o índice FAISS."""
+def load_faiss_index(index_path: str, embeddings):
+    """Carrega o índice FAISS específico."""
     try:
-        embeddings = initialize_embeddings()
-        index_path = Path(__file__).parent 
-
-        # Verifica se o índice FAISS existe
-        if not index_path.exists():
-            raise FileNotFoundError(f"📁 Diretório do índice FAISS não encontrado em {index_path}")
-
-        return FAISS.load_local(
-            folder_path=str(index_path),
-            embeddings=embeddings,
-            allow_dangerous_deserialization=True
-        )
+        if os.path.exists(index_path):
+            return FAISS.load_local(index_path, embeddings)
+        else:
+            raise FileNotFoundError(f"Arquivo index.faiss não encontrado em: {index_path}")
     except Exception as e:
-        st.error("⚠️ Erro ao carregar índice FAISS")
-        raise ValueError(f"Erro no FAISS: {e}")
-
-def render_sidebar():
-    """Renderiza a sidebar do aplicativo."""
-    with st.sidebar:
-        st.header("ℹ️ Informações")
-        st.markdown("""
-        💬 **Assistente baseado em embeddings do modelo BiomedCLIP**
-        
-        📚 **Dicas de uso:**
-        - Faça perguntas claras e específicas
-        - Utilize termos técnicos médicos
-        - Forneça contexto clínico relevante
-        """)
+        raise RuntimeError(f"Erro ao carregar index.faiss: {str(e)}")
 
 def main():
-    st.set_page_config(
-        page_title="Chatbot - Manual de Cuidados Paliativos",
-        page_icon="🏥",
-        layout="wide"
-    )
-    st.title("🤖 Chatbot do Manual de Cuidados Paliativos")
-    render_sidebar()
+    st.title("Chatbot com Base de Conhecimento FAISS")
 
+    # Configurar caminho do index.faiss
+    index_path = "index.faiss"  # Arquivo no diretório atual
+
+    # Inicializar embeddings e carregar índice FAISS
     try:
-        # Inicialização do vector store
-        if 'vector_store' not in st.session_state:
-            with st.spinner("📚 Carregando base de conhecimento..."):
-                st.session_state.vector_store = initialize_vector_store()
-                st.success("✅ Base de conhecimento carregada!")
-
-        # Configuração do retriever
-        retriever = st.session_state.vector_store.as_retriever(
-            search_kwargs={"k": 5}
-        )
-
-        # Interface do usuário
-        user_question = st.text_input(
-            "💭 Faça sua pergunta sobre o Manual de Cuidados Paliativos:",
-            key="user_input"
-        )
-        
-        if user_question:
-            with st.spinner("🔄 Processando sua pergunta..."):
-                context = retriever.get_relevant_documents(user_question)
-                response = "🔄 Resposta simulada: Integração com BiomedCLIP ainda em progresso."
-
-                # Exibição da resposta
-                st.markdown("### 📝 Resposta:")
-                st.markdown(response)
-
-                # Exibição das fontes
-                with st.expander("📚 Fontes consultadas"):
-                    sources = set(doc.metadata.get('source', 'Desconhecido') 
-                                for doc in context)
-                    for source in sources:
-                        st.markdown(f"- {Path(source).name}")
-
+        embeddings = get_embeddings()
+        vector_store = load_faiss_index(index_path, embeddings)
+        retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+        st.success("Base de conhecimento carregada com sucesso!")
     except Exception as e:
-        st.error(f"⚠️ Erro no aplicativo: {str(e)}")
-        st.info("🔄 Tente recarregar a página ou contate o suporte.")
+        st.error(f"Erro ao inicializar o sistema: {str(e)}")
+        return
+
+    # Interface do chat
+    st.write("### Chat")
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # Exibir mensagens anteriores
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.write(message["content"])
+
+    # Campo de entrada do usuário
+    user_question = st.chat_input("Digite sua pergunta:")
+
+    if user_question:
+        # Adicionar pergunta do usuário ao histórico
+        st.session_state.messages.append({"role": "user", "content": user_question})
+        with st.chat_message("user"):
+            st.write(user_question)
+
+        try:
+            with st.spinner("Processando sua pergunta..."):
+                # Recuperar contexto relevante do FAISS
+                context = retriever.get_relevant_documents(user_question)
+                
+                # Configurar chat model
+                chat_model = ChatGroq(
+                    api_key=GROQ_API_KEY,
+                    model_name="llama-3.2-3b-preview",
+                    temperature=0.4,
+                    max_tokens=512
+                )
+
+                # Preparar prompt com contexto
+                messages = [
+                    ("system", """Você é um assistente especializado que responde apenas com base no 
+                     contexto fornecido. Se a informação não estiver no contexto, diga que não pode 
+                     responder. Seja conciso e direto em suas respostas."""),
+                    ("user", f"""
+                    Contexto: {' '.join(doc.page_content for doc in context)}
+                    
+                    Pergunta: {user_question}
+                    """)
+                ]
+
+                # Gerar resposta
+                response = chat_model.invoke(messages)
+
+                # Exibir resposta
+                with st.chat_message("assistant"):
+                    st.write(response.content)
+                
+                # Adicionar resposta ao histórico
+                st.session_state.messages.append({"role": "assistant", "content": response.content})
+
+                # Exibir trechos relevantes em um expander
+                with st.expander("Ver trechos relevantes utilizados"):
+                    for i, doc in enumerate(context, 1):
+                        st.markdown(f"**Trecho {i}:**")
+                        st.write(doc.page_content[:200] + "...")
+
+        except Exception as e:
+            st.error(f"Erro ao processar pergunta: {str(e)}")
 
 if __name__ == "__main__":
     main()
