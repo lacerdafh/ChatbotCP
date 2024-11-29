@@ -40,7 +40,7 @@ def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
         
         return HuggingFaceInferenceAPIEmbeddings(
             api_key=hf_key,
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
+            model_name="sentence-transformers/all-mpnet-base-v2"
         )
     except Exception as e:
         st.error("⚠️ Erro na inicialização dos embeddings")
@@ -138,7 +138,7 @@ def main():
 
         # Configuração do retriever
         retriever = st.session_state.vector_store.as_retriever(
-            search_kwargs={"k": 5}
+            search_kwargs={"k": 10}
         )
 
         # Interface do usuário
