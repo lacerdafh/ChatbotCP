@@ -59,7 +59,7 @@ def main():
 
     # Configurar caminho do index.faiss
     current_dir = Path(os.path.dirname(__file__))  # Diretório do arquivo atual
-    index_path = current_dir / "index.faiss"
+    index_path = current_dir / 
     # Inicializar embeddings e carregar índice FAISS
     try:
         embeddings = get_embeddings()
