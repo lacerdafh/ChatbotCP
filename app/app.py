@@ -90,6 +90,9 @@ def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
         os.environ["GROQ_API_KEY"] = groq_key
         os.environ["HF_API_KEY"] = hf_key
         
+        # Debug
+        st.write("Inicializando embeddings com modelo HuggingFace:", "neuralmind/bert-base-portuguese-cased")
+
         return HuggingFaceInferenceAPIEmbeddings(
             api_key=hf_key,
             model_name="neuralmind/bert-base-portuguese-cased"
