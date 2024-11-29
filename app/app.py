@@ -7,11 +7,11 @@ from langchain_groq import ChatGroq
 from pathlib import Path
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
-import warnings
-import requests
-
+import pickle
+import shutil
 
 # Configurações para suprimir avisos
+import warnings
 warnings.filterwarnings('ignore')
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -28,39 +28,19 @@ def load_api_keys() -> Tuple[str, str]:
     except Exception as e:
         st.error("⚠️ Erro ao carregar chaves API. Verifique as configurações.")
         raise ValueError(f"Erro nas chaves API: {e}")
-        
-def ensure_faiss_index():
-    """Garante que o arquivo index.faiss esteja disponível localmente."""
-    github_url = "https://github.com/lacerdafh/ChatbotCP/blob/main/app/faiss_index"
-    local_dir = Path(__file__).parent / "faiss_index"
-    local_dir.mkdir(parents=True, exist_ok=True)
-    local_path = local_dir / "index.faiss"
 
-    if not local_path.exists():
-        st.warning("🔄 Baixando arquivo de índice FAISS...")
-        try:
-            response = requests.get(github_url)
-            if response.status_code == 200:
-                with open(local_path, "wb") as f:
-                    f.write(response.content)
-                st.success("✅ Arquivo FAISS baixado com sucesso!")
-            else:
-                st.error(f"⚠️ Erro ao baixar o arquivo FAISS: {response.status_code}")
-                raise ValueError("Erro ao baixar o arquivo FAISS.")
-        except Exception as e:
-            st.error(f"⚠️ Erro durante o download: {str(e)}")
-            raise e
-    return local_path
-    
 # Inicialização do modelo de embeddings
 @st.cache_resource
 def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
-    """Inicializa o modelo HuggingFaceInferenceAPIEmbeddings."""
+    """Inicializa o modelo de embeddings com cache."""
     try:
-        _, hf_key = load_api_keys()
+        groq_key, hf_key = load_api_keys()
+        os.environ["GROQ_API_KEY"] = groq_key
+        os.environ["HF_API_KEY"] = hf_key
+        
         return HuggingFaceInferenceAPIEmbeddings(
             api_key=hf_key,
-            model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
     except Exception as e:
         st.error("⚠️ Erro na inicialização dos embeddings")
@@ -68,25 +48,26 @@ def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
 
 @st.cache_resource
 def initialize_vector_store() -> FAISS:
-    """Inicializa e carrega o índice com a classe FAISS."""
+    """Inicializa e carrega o índice FAISS."""
     try:
         embeddings = initialize_embeddings()
+        index_path = Path(__file__).parent / "faiss_index"
         
-        index_path = ensure_faiss_index()
-        # Verificar se o arquivo do índice existe
+        # Para debug
+        #st.write(f"Tentando carregar de: {index_path}")
+        #st.write(f"O diretório existe? {index_path.exists()}")
+        
         if not index_path.exists():
-            raise FileNotFoundError(f"📁 Arquivo do índice FAISS não encontrado em {index_path}")
-
-        # Carregar o índice FAISS
-        vector_store = FAISS.load_local(
-            str(index_path), 
-            embeddings, 
+            raise FileNotFoundError(f"📁 Diretório do índice FAISS não encontrado em {index_path}")
+            
+        return FAISS.load_local(
+            folder_path=str(index_path),
+            embeddings=embeddings,
             allow_dangerous_deserialization=True
         )
-
-        return vector_store
     except Exception as e:
         st.error("⚠️ Erro ao carregar índice FAISS")
+        st.write(f"Diretório atual: {Path.cwd()}")  # Mostra diretório atual
         raise ValueError(f"Erro no FAISS: {e}")
 
 def get_chat_response(context: List[Document], question: str) -> str:
@@ -96,13 +77,13 @@ def get_chat_response(context: List[Document], question: str) -> str:
         chat_model = ChatGroq(
             api_key=groq_key,
             model_name="llama-3.2-3b-preview",
-            temperature=0.5,
+            temperature=0.3,
             max_tokens=1028
         )
 
         system_prompt = """Você é um Chatbot especializado em cuidados paliativos, baseando-se exclusivamente no Manual de Cuidados Paliativos, 2ª ed., São Paulo: Hospital Sírio-Libanês; Ministério da Saúde, 2023.
         - Responda apenas com informações documentadas no manual
-        - obrigatório fornecer orientações detalhadas sobre medicações
+        - Forneça orientações detalhadas sobre medicações
         - Estruture as respostas de forma clara
         - Mencione capítulos e subtítulos relevantes do manual"""
 
@@ -157,7 +138,7 @@ def main():
 
         # Configuração do retriever
         retriever = st.session_state.vector_store.as_retriever(
-            search_kwargs={"k": 10}
+            search_kwargs={"k": 5}
         )
 
         # Interface do usuário
