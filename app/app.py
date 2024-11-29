@@ -40,7 +40,7 @@ def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
         
         return HuggingFaceInferenceAPIEmbeddings(
             api_key=hf_key,
-            model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
     except Exception as e:
         st.error("⚠️ Erro na inicialização dos embeddings")
