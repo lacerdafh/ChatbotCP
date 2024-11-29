@@ -9,6 +9,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 import pickle
 import shutil
+from nova_vectorestore import VectorStoreFlatMMR
 
 # Configurações para suprimir avisos
 import warnings
@@ -47,27 +48,32 @@ def initialize_embeddings() -> HuggingFaceInferenceAPIEmbeddings:
         raise ValueError(f"Erro nos embeddings: {e}")
 
 @st.cache_resource
-def initialize_vector_store() -> FAISS:
-    """Inicializa e carrega o índice FAISS."""
+def initialize_vector_store() -> VectorStoreFlatMMR:
+    """Inicializa e carrega o índice com a classe VectorStoreFlatMMR."""
     try:
         embeddings = initialize_embeddings()
-        index_path = Path(__file__).parent / "faiss_index"
-        
-        # Para debug
-        #st.write(f"Tentando carregar de: {index_path}")
-        #st.write(f"O diretório existe? {index_path.exists()}")
-        
+        index_path = Path(__file__).parent / "faiss_index" / "index.faiss"  # Caminho para o novo índice
+
+        # Verificar se o arquivo do índice existe
         if not index_path.exists():
-            raise FileNotFoundError(f"📁 Diretório do índice FAISS não encontrado em {index_path}")
-            
-        return FAISS.load_local(
-            folder_path=str(index_path),
-            embeddings=embeddings,
-            allow_dangerous_deserialization=True
+            raise FileNotFoundError(f"📁 Arquivo do índice FAISS não encontrado em {index_path}")
+
+        # Instanciar a classe VectorStoreFlatMMR
+        vector_store = VectorStoreFlatMMR(
+            embedding_model="neuralmind/bert-base-portuguese-cased",  # Modelo escolhido
+            lambda_param=0.7,  # Ajustável para balancear relevância e diversidade
+            top_k=10,  # Número de documentos retornados por busca
+            max_vectors_warning=100000,  # Aviso ao ultrapassar limite de vetores
+            chunk_size=1000,  # Tamanho dos chunks de texto
+            chunk_overlap=200  # Sobreposição entre chunks
         )
+
+        # Carregar o índice FAISS
+        vector_store.index = vector_store.load_vector_store(str(index_path))
+
+        return vector_store
     except Exception as e:
-        st.error("⚠️ Erro ao carregar índice FAISS")
-        st.write(f"Diretório atual: {Path.cwd()}")  # Mostra diretório atual
+        st.error("⚠️ Erro ao carregar índice FAISS com VectorStoreFlatMMR")
         raise ValueError(f"Erro no FAISS: {e}")
 
 def get_chat_response(context: List[Document], question: str) -> str:
